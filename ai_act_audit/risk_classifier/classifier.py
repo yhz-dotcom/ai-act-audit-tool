@@ -166,14 +166,28 @@ class RiskClassifier:
         return any(high_risk_indicators)
     
     def _has_article_6_3_exception(self, system: AISystem) -> bool:
-        """Vérifie si le système bénéficie d'une exception Article 6(3)."""
-        # Tâche procédurale étroite OU améliore travail humain sans remplacer
-        # OU influence non substantielle sur la décision
-        return (
-            system.narrow_procedural_task or
-            (system.improves_human_work and not system.automated_decision_making) or
-            system.non_material_influence
-        )
+        """
+        Vérifie si le système bénéficie d'une exception Article 6(3).
+        
+        ATTENTION: Les 4 conditions doivent être cumulées (ET logique).
+        Si profilage détecté -> Pas d'exemption possible.
+        
+        Référence: AI Act Article 6(3)
+        """
+        # CRITIQUE: Si profilage détecté -> Maintien haut risque
+        # Profilage = données personnelles + décision automatisée
+        if system.uses_personal_data and system.automated_decision_making:
+            return False
+        
+        # Les 4 conditions doivent TOUTES être remplies (ET logique)
+        conditions = [
+            system.narrow_procedural_task,           # C1: Tâche procédurale étroite
+            system.improves_human_work,               # C2: Améliore travail humain
+            system.non_material_influence,            # C3: Influence non substantielle
+            system.human_oversight                    # C4: Supervision humaine
+        ]
+        
+        return all(conditions)
     
     def _is_limited_risk(self, system: AISystem) -> bool:
         """Vérifie si le système est à risque limité (Article 50)."""
